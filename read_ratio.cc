@@ -50,6 +50,11 @@ void func_canv_margin(TCanvas *canv, double left, double right, double top, doub
 //
 // Calcualte the credible interval of ratio=meas/pred
 //
+// Two solutions: analytic and ToyMC
+// ROOT package needed for analytic solution: #include "TF1Convolution.h" // "root-config --features" --> should have "fftw"
+//
+// usage: root -l read_ratio.cc
+//
 
 class TRatio
 {
@@ -637,22 +642,23 @@ void read_ratio()
   exampleA->Toy_ResultsOfRatio(1, 10000000);
  
   /// self-check
-  cout<<endl<<TString::Format(" ---> Integration of analytical Ratio PDF: %8.5f",
+  cout<<endl<<TString::Format(" ---> Integration of analytic Ratio PDF (should be close to 1, else set range): %8.5f",
                               exampleA->Get_func_ratio_meas2pred()->Integral( exampleA->Get_ratio_range_low(), exampleA->Get_ratio_range_hgh() )
                               )<<endl<<endl;
  
-  cout<<TString::Format(" ---> Ratio %8.4f, analytical lower/upper: %8.4f, %8.4f",
+  cout<<TString::Format(" ---> Ratio %8.4f, analytic lower/upper: %8.4f, %8.4f",
 			      exampleA->Get_ratio(),
 			      exampleA->Get_ratio_lower(),
 			      exampleA->Get_ratio_upper()
 			      )<<endl<<endl;
  
-  cout<<TString::Format(" ---> Ratio %8.4f,      toyMC lower/upper: %8.4f, %8.4f",
+  cout<<TString::Format(" ---> Ratio %8.4f,    toyMC lower/upper: %8.4f, %8.4f",
 			      exampleA->Get_ratio(),
 			      exampleA->Get_toy_ratio_lower(),
 			      exampleA->Get_toy_ratio_upper()
 			      )<<endl<<endl;
   
+  /////////////////////////// It will save time if don't draw figures
   ///////////////////////////
   
   roostr = "canv_data";
