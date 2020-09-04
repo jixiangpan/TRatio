@@ -669,9 +669,9 @@ void read_ratio()
   exampleA->Get_summation_pred_func()->Draw("same");    
   exampleA->Get_summation_pred_func()->SetLineColor(kGray+1);
       
-  exampleA->Get_meas_component(1)->Draw("same");
-  exampleA->Get_meas_component(1)->SetLineColor(kBlack);
-
+  exampleA->Get_summation_meas_func()->Draw("same");    
+  exampleA->Get_summation_meas_func()->SetLineColor(kBlack);
+      
   exampleA->Get_pred_component(1)->SetLineColor(kBlue);
   exampleA->Get_pred_component(2)->SetLineColor(kGreen+1);
   exampleA->Get_pred_component(3)->SetLineColor(kRed);
