@@ -634,7 +634,7 @@ void read_ratio()
  
   /// calculate the credible interval of the ratio by toy
   /// (nSigma, number of toys)
-  exampleA->Toy_ResultsOfRatio(1, 1000000);
+  exampleA->Toy_ResultsOfRatio(1, 10000000);
  
   /// self-check
   cout<<endl<<TString::Format(" ---> Integration of analytical Ratio PDF: %8.5f",
