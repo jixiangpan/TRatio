@@ -120,6 +120,19 @@ public:
   TH1D *Get_toy_ratio_PDF() { return h1_toy_ratio_PDF; };
   double Get_toy_ratio_lower() { return toy_ratio_lower; }
   double Get_toy_ratio_upper() { return toy_ratio_upper; }
+
+  void Self_Check() {
+    if( sum_meas==0 ) {  
+      cout<<endl<<" -------------> Special case: sum_meas==0"<<endl;
+      cout<<" -------------> Special case: sum_meas==0"<<endl;
+
+      flag_meas0 = true;
+    }
+    if( sum_pred<=0 || sum_meas<0 ) {
+      cerr<<endl<<" -------------------> ERROR: sum_pred<=0 || sum_meas<0"<<endl<<endl;
+      exit(1);
+    }    
+  };
   
 private:  
   int size_meas;
@@ -157,6 +170,8 @@ private:
   double toy_ratio_upper;
 
   TH1D *h1_toy_ratio_PDF;
+
+  bool flag_meas0;
   
   static TF1 *func_meas;
   static TF1 *func_pred;
@@ -233,6 +248,31 @@ void TRatio::Toy_ResultsOfRatio(int nSigma, int nToy)
   toy_ratio_lower = ( xlow_a+xlow_b )/2;
   toy_ratio_upper = ( xhgh_a+xhgh_b )/2;
 
+  //////////////////////////////////////////////
+  
+  if( flag_meas0 ) {
+    //cout<<" checking ... "<<endl;
+    toy_ratio_lower = 0;
+    toy_ratio_upper = 0;
+
+    line = 0;
+    double xhgh_a = 0;
+    double xhgh_b = 0;
+    for(int i=size_vec-1; i>=0; i--) {
+      line++;
+      if( line*1./size_vec < (1-value_sigma) ) {
+	xhgh_a = vec_ratio.at( i );
+	xhgh_b = vec_ratio.at( i-1 );
+      }
+      else {
+	break;
+      }
+    }
+    
+    toy_ratio_upper = ( xhgh_a+xhgh_b )/2;    
+  }// flag_meas0
+
+  
   cout<<" -------------- End of Toy"<<endl;
   
 }
@@ -294,7 +334,42 @@ void TRatio::Calculate_ratio_lower_upper(int nSigma)
   }
   
   ratio_lower = (val_typeA+val_typeB)/2;
-       
+
+  ///////////////////////////////////////////////
+
+  if( flag_meas0 ) {
+    //cout<<" ---> checking ..."<<endl;
+    ratio_lower = 0;
+    ratio_upper = 0;
+    
+    line = 0;
+    val_typeA = ratio_range_low;
+    val_typeB = ratio_range_hgh;
+    while( fabs(val_typeA-val_typeB)>1e-4 ) {
+      line++;
+      double val_mid = (val_typeA+val_typeB)/2;
+      double y_mid = func_ratio_meas2pred->Integral(val_mid, ratio_range_hgh);
+      if( y_mid > (1-value_sigma) ) {
+	val_typeA = val_mid;
+      }
+      else {
+	val_typeB = val_mid;
+      }
+    
+      if( line>30 ) {
+	cerr<<" Error: cannot find ratio_sigma_upper"<<endl;
+	break;
+      }
+    }
+  
+    ratio_upper = (val_typeA+val_typeB)/2;       
+    
+  }// flag_meas0
+
+  ///////////////////////////////////////////////
+  //
+  // other special case: Prob(lower_range, ratio_M/P) < p-value required, then ...
+  //
 }
 
 void TRatio::Func_ratio_meas2pred()
@@ -567,6 +642,8 @@ void TRatio::Clear()
   toy_ratio_upper = 0;
 
   h1_toy_ratio_PDF = NULL;
+
+  flag_meas0 = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -618,12 +695,15 @@ void read_ratio()
 
   /// measurement: event and weight
   exampleA->Add_meas_component(460, 1);
- 
+   
   /// prediction: event and weight
   exampleA->Add_pred_component(400, 0.25);
   exampleA->Add_pred_component(200, 1);
   exampleA->Add_pred_component(300, 0.5);
- 
+  
+  ///
+  exampleA->Self_Check();
+  
   /// print out inputs
   exampleA->Print_inputs();
   
@@ -639,7 +719,7 @@ void read_ratio()
  
   /// calculate the credible interval of the ratio by toy
   /// (nSigma, number of toys)
-  exampleA->Toy_ResultsOfRatio(1, 10000000);
+  exampleA->Toy_ResultsOfRatio(1, 1000000);
  
   /// self-check
   cout<<endl<<TString::Format(" ---> Integration of analytic Ratio PDF (should be close to 1, else set range): %8.5f",
