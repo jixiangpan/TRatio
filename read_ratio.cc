@@ -1,5 +1,6 @@
 #include<iostream>
 #include<fstream>
+#include<sstream>
 #include<cmath>
 #include "stdlib.h"
 using namespace std;
@@ -7,6 +8,7 @@ using namespace std;
 #include<map>
 #include<vector>
 #include<set>
+#include<algorithm> // std::sort
 
 #include "TH1.h"
 #include "TH2.h"
@@ -33,7 +35,7 @@ using namespace std;
 #include "TString.h"
 #include "TROOT.h"
 
-#include "TF1Convolution.h"
+#include "TF1Convolution.h" // "root-config --features" --> should have "fftw"
 
 void func_canv_margin(TCanvas *canv, double left, double right, double top, double bot)
 {
@@ -45,14 +47,14 @@ void func_canv_margin(TCanvas *canv, double left, double right, double top, doub
 
 /////////////////////////////////////////////////////////////////////////////////// class
 
-// calcualte ratio = meas/pred, and its credible interval
+//
+// Calcualte the credible interval of ratio=meas/pred
+//
 
 class TRatio
 {
 public:
-  TRatio() {
-    gErrorIgnoreLevel = 6001;
-  }
+  TRatio() {;}
 
   void Clear();
   
@@ -91,25 +93,28 @@ public:
   double Get_ratio() { return ratio_value; };
 
   void Print_inputs() {
-    cout<<endl<<" -------------- Input Information"<<endl;
-    cout<<" --->  data_range_low/hgh "<<data_range_low<<"\t"<<data_range_hgh<<endl;
-    cout<<" ---> ratio_range_low/hgh "<<ratio_range_low<<"\t"<<ratio_range_hgh<<endl;
+    cout<<endl<<" -------------- Input Information"<<endl<<endl;    
+    cout<<" --->  data_range low/hgh: "<<data_range_low<<"\t"<<data_range_hgh<<endl;
+    cout<<" ---> ratio_range low/hgh: "<<ratio_range_low<<"\t"<<ratio_range_hgh<<endl;
 
     cout<<endl;
     for(int i=1; i<=size_meas; i++) {
-      cout<<TString::Format(" ---> %2d meas: %8.2f %8.2f",
-			    i, map_meas_pars[i][0], map_meas_pars[i][1])<<endl;
+      cout<<TString::Format(" ---> %2d measurement (event and weight): %8.2f %8.2f",
+                            i, map_meas_pars[i][0], map_meas_pars[i][1])<<endl;
     }
     cout<<endl;
     
     for(int i=1; i<=size_pred; i++) {
-      cout<<TString::Format(" ---> %2d pred: %8.2f %8.2f",
-			    i, map_pred_pars[i][0], map_pred_pars[i][1])<<endl;
+      cout<<TString::Format(" ---> %2d prediction  (event and weight): %8.2f %8.2f",
+                            i, map_pred_pars[i][0], map_pred_pars[i][1])<<endl;
     }
-    cout<<" -------------- "<<endl;
+    cout<<endl<<" -------------- "<<endl<<endl;
   }
 
   void Toy_ResultsOfRatio(int nSigma, int nToy);
+  TH1D *Get_toy_ratio_PDF() { return h1_toy_ratio_PDF; };
+  double Get_toy_ratio_lower() { return toy_ratio_lower; }
+  double Get_toy_ratio_upper() { return toy_ratio_upper; }
   
 private:  
   int size_meas;
@@ -145,10 +150,11 @@ private:
 
   double toy_ratio_lower;
   double toy_ratio_upper;
+
+  TH1D *h1_toy_ratio_PDF;
   
   static TF1 *func_meas;
   static TF1 *func_pred;
-  
 };
 
 TF1* TRatio::func_meas = NULL;
@@ -160,11 +166,12 @@ void TRatio::Toy_ResultsOfRatio(int nSigma, int nToy)
 {
   vector<double>vec_ratio;
   
-  for(int i=1; i<=nToy; i++) {
-
-    if( i%(nToy/10)==0 ) {
-      cout<<TString::Format(" ---> processing Toy %5.2f", i*1./nToy)<<endl;
-    }
+  h1_toy_ratio_PDF = new TH1D("h1_toy_ratio_PDF", "", 1000, ratio_range_low, ratio_range_hgh);
+  
+  cout<<" -------------- Begin of Toy"<<endl;
+  
+  for(int i=1; i<=nToy; i++) {    
+    if( i%(nToy/10)==0 ) cout<<TString::Format(" ---> processing Toy %5.2f", i*1./nToy)<<endl;
     
     double user_meas = 0;
     double user_pred = 0;
@@ -179,15 +186,17 @@ void TRatio::Toy_ResultsOfRatio(int nSigma, int nToy)
 
     double ratio = user_meas/user_pred;
     vec_ratio.push_back(ratio);
+
+    h1_toy_ratio_PDF->Fill( ratio );
   }
 
-  
   double value_sigma = 1-TMath::Prob(pow(nSigma,2), 1);
     
-  int size_vec = vec_ratio.size();
-  //cout<<endl<<" size vec "<<size_vec<<endl<<endl;
-  sort( vec_ratio.begin(), vec_ratio.end() );
+  int size_vec = vec_ratio.size();  
+  h1_toy_ratio_PDF->Scale( 1./size_vec );
   
+  sort( vec_ratio.begin(), vec_ratio.end() );
+    
   int line = 0;
   double xlow_a = 0;
   double xlow_b = 0;
@@ -219,10 +228,8 @@ void TRatio::Toy_ResultsOfRatio(int nSigma, int nToy)
   toy_ratio_lower = ( xlow_a+xlow_b )/2;
   toy_ratio_upper = ( xhgh_a+xhgh_b )/2;
 
-  cout<<endl<<TString::Format(" ---> (%d) Toy ratio lower/upper %8.4f %8.4f",
-			      size_vec,
-			      toy_ratio_lower, toy_ratio_upper
-			      )<<endl<<endl;
+  cout<<" -------------- End of Toy"<<endl;
+  
 }
   
 //////
@@ -252,7 +259,7 @@ void TRatio::Calculate_ratio_lower_upper(int nSigma)
     else {
       val_typeB = val_mid;
     }
-    //cout<<TString::Format(" -------> upper %3d, %10.6f %10.6f", line, val_typeA, val_typeB)<<endl;
+    
     if( line>30 ) {
       cerr<<" Error: cannot find ratio_sigma_upper"<<endl;
       break;
@@ -276,7 +283,7 @@ void TRatio::Calculate_ratio_lower_upper(int nSigma)
     else {
       val_typeA = val_mid;
     }
-    //cout<<TString::Format(" -------> lower %3d, %10.6f %10.6f", line, val_typeA, val_typeB)<<endl;
+    
     if( line>30 ) {
       cerr<<" Error: cannot find ratio_sigma_lower"<<endl;
       break;
@@ -314,7 +321,7 @@ void TRatio::Summation_meas_func()
   else {
     int line = 2;
     fconv_meas[line] = new TF1Convolution( map_pdf_func_meas_component[line-1], map_pdf_func_meas_component[line],
-				      data_range_low, data_range_hgh, true );
+                                      data_range_low, data_range_hgh, true );
     fconv_meas[line]->SetNofPointsFFT(10000);
     roostr = TString::Format("func_conv_meas_%02d", line);
     func_conv_meas[line] = new TF1(roostr, fconv_meas[line], data_range_low, data_range_hgh, 0);
@@ -322,13 +329,13 @@ void TRatio::Summation_meas_func()
   
     if( size_meas>=3 ) {
       for( int idx=3; idx<=size_meas; idx++ ) {
-	line++;
-	fconv_meas[line] = new TF1Convolution( func_conv_meas[line-1], map_pdf_func_meas_component[line],
-					       data_range_low, data_range_hgh, true );
-	fconv_meas[line]->SetNofPointsFFT(10000);
-	roostr = TString::Format("func_conv_meas_%02d", line);
-	func_conv_meas[line] = new TF1(roostr, fconv_meas[line], data_range_low, data_range_hgh, 0);
-	func_conv_meas[line]->SetNpx(60000);
+        line++;
+        fconv_meas[line] = new TF1Convolution( func_conv_meas[line-1], map_pdf_func_meas_component[line],
+                                               data_range_low, data_range_hgh, true );
+        fconv_meas[line]->SetNofPointsFFT(10000);
+        roostr = TString::Format("func_conv_meas_%02d", line);
+        func_conv_meas[line] = new TF1(roostr, fconv_meas[line], data_range_low, data_range_hgh, 0);
+        func_conv_meas[line]->SetNpx(60000);
       }      
     }
     
@@ -350,7 +357,7 @@ void TRatio::Summation_pred_func()
   else {
     int line = 2;
     fconv_pred[line] = new TF1Convolution( map_pdf_func_pred_component[line-1], map_pdf_func_pred_component[line],
-				      data_range_low, data_range_hgh, true );
+                                      data_range_low, data_range_hgh, true );
     fconv_pred[line]->SetNofPointsFFT(10000);
     roostr = TString::Format("func_conv_pred_%02d", line);
     func_conv_pred[line] = new TF1(roostr, fconv_pred[line], data_range_low, data_range_hgh, 0);
@@ -358,13 +365,13 @@ void TRatio::Summation_pred_func()
   
     if( size_pred>=3 ) {
       for( int idx=3; idx<=size_pred; idx++ ) {
-	line++;
-	fconv_pred[line] = new TF1Convolution( func_conv_pred[line-1], map_pdf_func_pred_component[line],
-					       data_range_low, data_range_hgh, true );
-	fconv_pred[line]->SetNofPointsFFT(10000);
-	roostr = TString::Format("func_conv_pred_%02d", line);
-	func_conv_pred[line] = new TF1(roostr, fconv_pred[line], data_range_low, data_range_hgh, 0);
-	func_conv_pred[line]->SetNpx(60000);
+        line++;
+        fconv_pred[line] = new TF1Convolution( func_conv_pred[line-1], map_pdf_func_pred_component[line],
+                                               data_range_low, data_range_hgh, true );
+        fconv_pred[line]->SetNofPointsFFT(10000);
+        roostr = TString::Format("func_conv_pred_%02d", line);
+        func_conv_pred[line] = new TF1(roostr, fconv_pred[line], data_range_low, data_range_hgh, 0);
+        func_conv_pred[line]->SetNpx(60000);
       }      
     }
     
@@ -485,32 +492,30 @@ double TRatio::pdf_func_sterling_poisson(double *x, double *par)
     else {
       if( val_meas>0 ) {
 
-	/// my formula
-	/// https://dlmf.nist.gov/5.11#i
-	/// https://en.wikipedia.org/wiki/Stirling%27s_approximation
-	
-	const int cn = 6;
-	double ci[cn] = {1., 1./12, 1./288, -139./51840, -571./2488320, 163879./209018880};
-	for(int i=0; i<cn; i++) {
-	  result += ci[i]/pow( val_meas, i );
-	}
-	result = exp( val_meas - val_pred + val_meas*log(val_pred/val_meas) ) / ( sqrt(2*TMath::Pi()*val_meas) * result  ) /val_weight;
-	
-	/// Jarrett's formula, DocDB 29109
-	/*
-	const int cn = 6;
-	double ci[cn] = {1., -1./12, 1./288, 139./51840, -571./2488320, -163879./209018880};
-	for(int i=0; i<cn; i++) {
-	  result += ci[i]/pow( val_meas, i+0.5 );
-	}
-	result = exp( val_meas - val_pred + val_meas*log(val_pred/val_meas) ) / ( sqrt(2*TMath::Pi()) ) * result /val_weight;
-	*/
+        /// 
+        /// https://dlmf.nist.gov/5.11#i
+        /// https://en.wikipedia.org/wiki/Stirling%27s_approximation    
+        const int cn = 6;
+        double ci[cn] = {1., 1./12, 1./288, -139./51840, -571./2488320, 163879./209018880};
+        for(int i=0; i<cn; i++) {
+          result += ci[i]/pow( val_meas, i );
+        }
+        result = exp( val_meas - val_pred + val_meas*log(val_pred/val_meas) ) / ( sqrt(2*TMath::Pi()*val_meas) * result  ) /val_weight;
+        
+        /// Jarrett's formula, DocDB 29109      
+        // const int cn = 6;
+        // double ci[cn] = {1., -1./12, 1./288, 139./51840, -571./2488320, -163879./209018880};
+        // for(int i=0; i<cn; i++) {
+        //   result += ci[i]/pow( val_meas, i+0.5 );
+        // }
+        // result = exp( val_meas - val_pred + val_meas*log(val_pred/val_meas) ) / ( sqrt(2*TMath::Pi()) ) * result /val_weight;
+        
       }
-      else if(val_meas==0) {
-	result = exp(-val_pred) / val_weight;
+      else if(val_meas==0) {// back to  Poisson distribution
+        result = exp(-val_pred) / val_weight;
       }
       else {
-	int flag = 0;
+        int flag = 0;
       }
     }
   }
@@ -526,8 +531,6 @@ void TRatio::Clear()
   map_pdf_func_meas_component.clear();
   map_pdf_func_pred_component.clear();
 
-  double map_meas_pars[50][2] = {0};// maximum 50 components
-  double map_pred_pars[50][2] = {0};
   for(int i=0; i<50; i++) {
     for(int j=0; j<2; j++) {
       map_meas_pars[i][j] = 0;
@@ -559,6 +562,8 @@ void TRatio::Clear()
   
   toy_ratio_lower = 0;
   toy_ratio_upper = 0;
+
+  h1_toy_ratio_PDF = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -571,10 +576,10 @@ void read_ratio()
   
   TString roostr = "";
 
-  TRatio *exampleA = new TRatio();
-
   /////////// validation
   /*
+  TRatio *exampleA = new TRatio();  
+
   double val_meas = 5;
   double val_pred_testA = 0;
   double testA = 0;
@@ -601,65 +606,91 @@ void read_ratio()
   */
   ///////////  
   
+  TRatio *exampleA = new TRatio();
+
   /// clear and initialization
   exampleA->Clear();
   exampleA->Set_data_range(0, 1000);
   exampleA->Set_ratio_range(0, 2);
 
-  /// measurement: value and weight
+  /// measurement: event and weight
   exampleA->Add_meas_component(460, 1);
-
-  /// prediction: value and weight
+ 
+  /// prediction: event and weight
   exampleA->Add_pred_component(400, 0.25);
   exampleA->Add_pred_component(200, 1);
   exampleA->Add_pred_component(300, 0.5);
+ 
+  /// print out inputs
+  exampleA->Print_inputs();
 
-  ///
+  /// calculate the PDF of summation of meas, or pred
   exampleA->Summation_meas_func();    
   exampleA->Summation_pred_func();
-  
+
+  /// calculate the PDF of the ratio=meas/pred
   exampleA->Func_ratio_meas2pred();
 
+  /// calculate the credible interval of the ratio
   exampleA->Calculate_ratio_lower_upper(1);// nSigma
 
-  exampleA->Print_inputs();
-    
-  cout<<endl
-      <<TString::Format(" ---> Integration of Ratio Function: %8.5f",
-			(exampleA->Get_func_ratio_meas2pred())->Integral( exampleA->Get_ratio_range_low(),
-									  exampleA->Get_ratio_range_hgh() )
-			)<<endl<<endl;
-
-  cout<<endl<<TString::Format(" ---> Ratio %8.4f, lower/upper %8.4f, %8.4f",
-			      exampleA->Get_ratio(),
-			      exampleA->Get_ratio_lower(), exampleA->Get_ratio_upper()
-			      )<<endl<<endl;
-  
+  /// calculate the credible interval of the ratio by toy
+  /// (nSigma, number of toys)
   exampleA->Toy_ResultsOfRatio(1, 10000000);
   
+  /// self-check
+  cout<<endl<<TString::Format(" ---> Integration of analytical Ratio PDF: %8.5f",
+                              exampleA->Get_func_ratio_meas2pred()->Integral( exampleA->Get_ratio_range_low(), exampleA->Get_ratio_range_hgh() )
+                              )<<endl<<endl;
+ 
+  cout<<TString::Format(" ---> Ratio %8.4f, analytical lower/upper: %8.4f, %8.4f",
+			      exampleA->Get_ratio(),
+			      exampleA->Get_ratio_lower(),
+			      exampleA->Get_ratio_upper()
+			      )<<endl<<endl;
+ 
+  cout<<TString::Format(" ---> Ratio %8.4f,      toyMC lower/upper: %8.4f, %8.4f",
+			      exampleA->Get_ratio(),
+			      exampleA->Get_toy_ratio_lower(),
+			      exampleA->Get_toy_ratio_upper()
+			      )<<endl<<endl;
+  
   ///////////////////////////
   
-  roostr = "canv_testAA";
-  TCanvas *canv_testAA = new TCanvas(roostr, roostr, 900, 650);
-  func_canv_margin(canv_testAA, 0.15, 0.2,0.1,0.15);
+  roostr = "canv_data";
+  TCanvas *canv_data = new TCanvas(roostr, roostr, 900, 650);
+  func_canv_margin(canv_data, 0.15, 0.2,0.1,0.15);
   
-  ( exampleA->Get_pred_component(1) )->Draw();
-  ( exampleA->Get_pred_component(2) )->Draw("same");
-  ( exampleA->Get_pred_component(3) )->Draw("same");
+  exampleA->Get_pred_component(1)->Draw();
+  
+  exampleA->Get_pred_component(2)->Draw("same");
+  exampleA->Get_pred_component(3)->Draw("same");
 
-  ( exampleA->Get_summation_pred_func() )->Draw("same");    
-  ( exampleA->Get_summation_pred_func() )->SetLineColor(kGray+1);
+  exampleA->Get_summation_pred_func()->Draw("same");    
+  exampleA->Get_summation_pred_func()->SetLineColor(kGray+1);
       
-  ( exampleA->Get_meas_component(1) )->Draw("same");
-  ( exampleA->Get_meas_component(1) )->SetLineColor(kBlack);
+  exampleA->Get_meas_component(1)->Draw("same");
+  exampleA->Get_meas_component(1)->SetLineColor(kBlack);
 
+  exampleA->Get_pred_component(1)->SetLineColor(kBlue);
+  exampleA->Get_pred_component(2)->SetLineColor(kGreen+1);
+  exampleA->Get_pred_component(3)->SetLineColor(kRed);
+    
   ///////////////////////////
   
-  roostr = "canv_testBB";
-  TCanvas *canv_testBB = new TCanvas(roostr, roostr, 900, 650);
-  func_canv_margin(canv_testBB, 0.15, 0.2,0.1,0.15);
+  roostr = "canv_analytical";
+  TCanvas *canv_analytical = new TCanvas(roostr, roostr, 900, 650);
+  func_canv_margin(canv_analytical, 0.15, 0.2,0.1,0.15);
 
-  ( exampleA->Get_func_ratio_meas2pred() )->Draw();
+  exampleA->Get_func_ratio_meas2pred()->Draw();
+  
+  ///////////////////////////
+  
+  roostr = "canv_toy";
+  TCanvas *canv_toy = new TCanvas(roostr, roostr, 900, 650);
+  func_canv_margin(canv_toy, 0.15, 0.2,0.1,0.15);
+
+  exampleA->Get_toy_ratio_PDF()->Draw("hist");
   
 
 }
