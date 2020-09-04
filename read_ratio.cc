@@ -90,7 +90,7 @@ public:
   void Calculate_ratio_lower_upper(int nSigma);
   double Get_ratio_lower() { return ratio_lower; }
   double Get_ratio_upper() { return ratio_upper; }
-  double Get_ratio() { return ratio_value; };
+  double Get_ratio() { ratio_value = sum_meas/sum_pred; return ratio_value; };
 
   void Print_inputs() {
     cout<<endl<<" -------------- Input Information"<<endl<<endl;    
@@ -99,13 +99,13 @@ public:
 
     cout<<endl;
     for(int i=1; i<=size_meas; i++) {
-      cout<<TString::Format(" ---> %2d measurement (event and weight): %8.2f %8.2f",
+      cout<<TString::Format(" ---> %2d measurement (event and weight): %8.2f %8.6f",
                             i, map_meas_pars[i][0], map_meas_pars[i][1])<<endl;
     }
     cout<<endl;
     
     for(int i=1; i<=size_pred; i++) {
-      cout<<TString::Format(" ---> %2d prediction  (event and weight): %8.2f %8.2f",
+      cout<<TString::Format(" ---> %2d prediction  (event and weight): %8.2f %8.6f",
                             i, map_pred_pars[i][0], map_pred_pars[i][1])<<endl;
     }
     cout<<endl<<" -------------- "<<endl<<endl;
@@ -238,8 +238,6 @@ void TRatio::Calculate_ratio_lower_upper(int nSigma)
 {
   double value_sigma = 1 - TMath::Prob( pow(nSigma, 2), 1);
 
-  ratio_value = sum_meas/sum_pred;
-  
   int line = 0;
   double val_typeA = 0;
   double val_typeB = 0;
@@ -623,7 +621,7 @@ void read_ratio()
  
   /// print out inputs
   exampleA->Print_inputs();
-
+  
   /// calculate the PDF of summation of meas, or pred
   exampleA->Summation_meas_func();    
   exampleA->Summation_pred_func();
@@ -633,11 +631,11 @@ void read_ratio()
 
   /// calculate the credible interval of the ratio
   exampleA->Calculate_ratio_lower_upper(1);// nSigma
-
+ 
   /// calculate the credible interval of the ratio by toy
   /// (nSigma, number of toys)
-  exampleA->Toy_ResultsOfRatio(1, 10000000);
-  
+  exampleA->Toy_ResultsOfRatio(1, 1000000);
+ 
   /// self-check
   cout<<endl<<TString::Format(" ---> Integration of analytical Ratio PDF: %8.5f",
                               exampleA->Get_func_ratio_meas2pred()->Integral( exampleA->Get_ratio_range_low(), exampleA->Get_ratio_range_hgh() )
@@ -656,7 +654,7 @@ void read_ratio()
 			      )<<endl<<endl;
   
   ///////////////////////////
-  
+  /*
   roostr = "canv_data";
   TCanvas *canv_data = new TCanvas(roostr, roostr, 900, 650);
   func_canv_margin(canv_data, 0.15, 0.2,0.1,0.15);
@@ -691,6 +689,6 @@ void read_ratio()
   func_canv_margin(canv_toy, 0.15, 0.2,0.1,0.15);
 
   exampleA->Get_toy_ratio_PDF()->Draw("hist");
-  
+  */
 
 }
