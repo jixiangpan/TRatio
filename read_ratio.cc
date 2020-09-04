@@ -701,7 +701,7 @@ void read_ratio()
   exampleA->Add_pred_component(200, 1);
   exampleA->Add_pred_component(300, 0.5);
   
-  ///
+  /// necessary
   exampleA->Self_Check();
   
   /// print out inputs
