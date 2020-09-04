@@ -654,7 +654,7 @@ void read_ratio()
 			      )<<endl<<endl;
   
   ///////////////////////////
-  /*
+  
   roostr = "canv_data";
   TCanvas *canv_data = new TCanvas(roostr, roostr, 900, 650);
   func_canv_margin(canv_data, 0.15, 0.2,0.1,0.15);
@@ -689,6 +689,6 @@ void read_ratio()
   func_canv_margin(canv_toy, 0.15, 0.2,0.1,0.15);
 
   exampleA->Get_toy_ratio_PDF()->Draw("hist");
-  */
+  
 
 }
