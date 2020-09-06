@@ -824,36 +824,6 @@ void read_ratio_beta()
   
   TString roostr = "";
 
-  /////////// validation
-  /*
-  TRatio *exampleA = new TRatio();  
-
-  double val_meas = 5;
-  double val_pred_testA = 0;
-  double testA = 0;
-  double testA_exact = 0;
-  
-  exampleA->Clear();
-  exampleA->Set_data_range(0, 50);
-  exampleA->Add_meas_component(val_meas, 1);
-
-  val_pred_testA = 1;
-  testA = ( exampleA->Get_meas_component(1) )->Eval(val_pred_testA);
-  testA_exact = exp(-val_pred_testA) * pow(val_pred_testA, val_meas)/TMath::Factorial( int(val_meas+0.4) );
-  cout<<" testA "<<testA<<"\t"<<testA_exact<<endl;
-  
-  val_pred_testA = 6;
-  testA = ( exampleA->Get_meas_component(1) )->Eval(val_pred_testA);
-  testA_exact = exp(-val_pred_testA) * pow(val_pred_testA, val_meas)/TMath::Factorial( int(val_meas+0.4) );
-  cout<<" testA "<<testA<<"\t"<<testA_exact<<endl;
-
-  val_pred_testA = 10;
-  testA = ( exampleA->Get_meas_component(1) )->Eval(val_pred_testA);
-  testA_exact = exp(-val_pred_testA) * pow(val_pred_testA, val_meas)/TMath::Factorial( int(val_meas+0.4) );
-  cout<<" testA "<<testA<<"\t"<<testA_exact<<endl;
-  */
-  ///////////
-  
   auto time1 = high_resolution_clock::now();
 
   /// declaration and definition
