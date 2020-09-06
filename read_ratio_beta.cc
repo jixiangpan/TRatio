@@ -903,7 +903,9 @@ void read_ratio_beta()
   /// (nSigma, number of toys)
   exampleA->Toy_ResultsOfRatio(1, 1000000);
  
-  /// self-check
+  /////////////////////////// self_check and print results
+  ///////////////////////////
+
   cout<<endl<<TString::Format(" ---> Integration of analytic Ratio PDF (should be close to 1, else set range): %8.5f",
                               exampleA->Get_func_ratio_meas2pred()->Integral( exampleA->Get_ratio_range_low(), exampleA->Get_ratio_range_hgh() )
                               )<<endl<<endl;
