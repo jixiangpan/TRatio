@@ -880,7 +880,9 @@ void read_ratio_beta()
   
   /// print out inputs
   exampleA->Print_inputs();
-  
+
+  ////////////////////// Analytic method
+
   /// calculate the PDF of summation of meas, or pred
   exampleA->Summation_meas_func();  
   exampleA->Summation_pred_func();
@@ -894,9 +896,10 @@ void read_ratio_beta()
   /// check time used
   auto time7 = high_resolution_clock::now();
   auto diff_1_7 = duration_cast<milliseconds>(time7 - time1);
-  int cc_diff_1_7 = diff_1_7.count(); cout<<endl<<TString::Format(" ---> Analytic method takes time (ms): %d", cc_diff_1_7)<<endl<<endl;
+  int cc_diff_1_7 = diff_1_7.count();
+  cout<<endl<<TString::Format(" ---> Analytic method takes time (ms): %d", cc_diff_1_7)<<endl<<endl;
   
-  //////////////////////
+  ////////////////////// ToyMC method
 
   /// calculate the credible interval of the ratio by toy
   /// (nSigma, number of toys)
