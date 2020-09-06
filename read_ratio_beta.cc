@@ -72,7 +72,13 @@ void func_canv_margin(TCanvas *canv, double left, double right, double top, doub
 // Two solutions: analytic and ToyMC
 // ROOT package needed for analytic solution: #include "TF1Convolution.h" // "root-config --features" --> should have "fftw"
 //
-// usage: root -l read_ratio.cc
+// usage: root -l read_ratio_beta.cc
+//
+//
+// exampleA->Set_analytic_result_precision( 1e-4 );
+// exampleA->Set_analytic_gh_digitize( 5000 );// "5000" takes 1sec, "1000" takes 0.4sec
+// exampleA->Calculate_ratio_lower_upper(1, true);// nSigma, digitize func_raito
+//
 //
 
 class TRatio
@@ -834,8 +840,11 @@ void read_ratio_beta()
   exampleA->Set_data_range(0, 1000);
   exampleA->Set_ratio_range(0, 2);
 
-  exampleA->Set_analytic_gh_digitize( 5000 );
+  /// set precision of CI by analytic method
   exampleA->Set_analytic_result_precision( 1e-4 );
+
+  /// set the number of digitization on pdf of ratio by analytic mtethod
+  exampleA->Set_analytic_gh_digitize( 5000 );
     
   /// measurement: event and weight
   exampleA->Add_meas_component(460, 1);
