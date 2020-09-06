@@ -854,7 +854,7 @@ void read_ratio_beta()
   */
   ///////////
   
-  // auto time1 = high_resolution_clock::now();
+  auto time1 = high_resolution_clock::now();
 
   /// declaration and definition
   TRatio *exampleA = new TRatio();
@@ -890,12 +890,11 @@ void read_ratio_beta()
   
   /// calculate the credible interval of the ratio
   exampleA->Calculate_ratio_lower_upper(1, true);// nSigma, digitize func_raito
-  
-  // auto time7 = high_resolution_clock::now();
-  // cout<<endl;  
-  // auto diff_1_7 = duration_cast<milliseconds>(time7 - time1);
-  // int cc_diff_1_7 = diff_1_7.count(); cout<<TString::Format("1_7 time (ms): %8d", cc_diff_1_7)<<endl;
-  // cout<<endl;
+
+  /// check time used
+  auto time7 = high_resolution_clock::now();
+  auto diff_1_7 = duration_cast<milliseconds>(time7 - time1);
+  int cc_diff_1_7 = diff_1_7.count(); cout<<endl<<TString::Format(" ---> Analytic method takes time (ms): %d", cc_diff_1_7)<<endl<<endl;
   
   //////////////////////
 
